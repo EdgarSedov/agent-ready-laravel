@@ -1,0 +1,12 @@
+# Personal Agent Overlay
+
+This file is intentionally example-only.
+
+Copy it to `AGENTS.local.md` when you want private machine-specific guidance such as:
+
+- preferred test commands
+- local credentials or emulator reminders
+- personal editor or tooling conventions
+- stricter review checklists for your own workflow
+
+Keep project-wide rules in tracked files. Keep personal preferences local.

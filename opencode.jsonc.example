@@ -1,0 +1,9 @@
+{
+  // Copy this file to `opencode.jsonc` when you want project-local OpenCode settings.
+  // Keep the live file ignored so personal preferences stay local.
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md",
+    "AGENTS.local.md"
+  ]
+}

@@ -1,0 +1,21 @@
+services:
+  laravel.test:
+    networks:
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-app.entrypoints=websecure"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-app.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-app.service=${COMPOSE_PROJECT_NAME}-app"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-app.tls=true"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-app.loadbalancer.server.port=80"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-vite.entrypoints=websecure"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-vite.rule=Host(`${VITE_DOMAIN}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-vite.service=${COMPOSE_PROJECT_NAME}-vite"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-vite.tls=true"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-vite.loadbalancer.server.port=${VITE_PORT:-5173}"
+
+networks:
+  traefik-public:
+    external: true

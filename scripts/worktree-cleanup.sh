@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./common.sh
+source "${SCRIPT_DIR}/common.sh"
+
+remove_worktree=0
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --remove-worktree)
+            remove_worktree=1
+            shift
+            ;;
+        *)
+            fail "unknown argument: $1"
+            ;;
+    esac
+done
+
+if [[ -x "${REPO_ROOT}/vendor/bin/sail" ]]; then
+    run_sail down --remove-orphans || true
+fi
+
+# AGENT_READY_OPTIONAL_HOST_VITE:
+# Re-enable ./scripts/traefik.sh unregister-vite here if this checkout uses a
+# host-run Vite process registered through shared Traefik file-provider routes.
+
+if [[ ${remove_worktree} -eq 1 ]]; then
+    if is_main_checkout; then
+        fail "refusing to remove the primary checkout"
+    fi
+
+    common_git_dir="$(git -C "${REPO_ROOT}" rev-parse --git-common-dir)"
+    git --git-dir="${common_git_dir}" worktree remove --force "${REPO_ROOT}"
+    log "removed worktree ${REPO_ROOT}"
+fi
