@@ -21,8 +21,8 @@ Typical pattern:
 
 ```bash
 mkdir -p .agents/skills
-ln -s ../../.ai/skills/bootstrap-current-checkout .agents/skills/bootstrap-current-checkout
-ln -s ../../.ai/skills/worktree-lifecycle .agents/skills/worktree-lifecycle
+ln -sfn ../../.ai/skills/bootstrap-current-checkout .agents/skills/bootstrap-current-checkout
+ln -sfn ../../.ai/skills/worktree-lifecycle .agents/skills/worktree-lifecycle
 ```
 
 Each tracked skill should follow the Agent Skills layout so Boost and OpenCode can both consume it:
@@ -32,3 +32,7 @@ Each tracked skill should follow the Agent Skills layout so Boost and OpenCode c
 ```
 
 The tracked files remain canonical. Local targets are just discovery surfaces for a specific tool.
+
+For local OpenCode config, copy `opencode.jsonc.example` to ignored `opencode.jsonc` and keep machine-specific reminders in `AGENTS.local.md`.
+
+This repo is prepared for Laravel Boost later, but does not install it by default. If a team opts in later, Boost can publish or sync local client files from these tracked sources, but that should stay a deliberate follow-up step.

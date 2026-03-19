@@ -1,9 +1,25 @@
 {
   // Copy this file to `opencode.jsonc` when you want project-local OpenCode settings.
   // Keep the live file ignored so personal preferences stay local.
+  // Shared repo instructions belong in `AGENTS.md`.
+  // Machine-specific reminders belong in `AGENTS.local.md`.
   "$schema": "https://opencode.ai/config.json",
   "instructions": [
     "AGENTS.md",
     "AGENTS.local.md"
   ]
+
+  // Optional later: if the team installs Laravel Boost, uncomment this block
+  // and review any generated local files before relying on them.
+  // ,"mcp": {
+  //   "laravel-boost": {
+  //     "type": "local",
+  //     "enabled": true,
+  //     "command": [
+  //       "vendor/bin/sail",
+  //       "artisan",
+  //       "boost:mcp"
+  //     ]
+  //   }
+  // }
 }

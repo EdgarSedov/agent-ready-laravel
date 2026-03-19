@@ -1,6 +1,6 @@
 # agent-ready-laravel
 
-Normal Laravel app scaffold with worktree-safe bootstrap scripts, shared project services, and portable agent assets.
+Normal Laravel app scaffold with worktree-safe bootstrap scripts, shared project services, portable agent assets, and room for optional Laravel Boost later.
 
 This repo keeps the app repo normal while making room for:
 
@@ -17,8 +17,8 @@ agent-ready-laravel/
   AGENTS.md
   AGENTS.local.md.example
   CLAUDE.md -> AGENTS.md
+  opencode.jsonc.example
   .ai/
-  .agents/
   scripts/
   docker/
   docker-compose.yml
@@ -33,6 +33,14 @@ agent-ready-laravel/
 - `mkcert` if you want trusted local certs in the shared Traefik repo
 
 Node is optional on the host. Standard Laravel tasks can stay containerized through Sail.
+
+## Companion Repo
+
+This setup expects the shared local HTTPS and reverse-proxy repo here:
+
+- `shared-traefik`: https://github.com/EdgarSedov/shared-traefik
+
+Clone it as a sibling directory, or point `SHARED_TRAEFIK_PATH` to an existing checkout.
 
 ## Bootstrap
 
@@ -131,13 +139,25 @@ Clean up only the current checkout's runtime state:
 
 That cleanup intentionally leaves shared Postgres, Redis, Mailpit, and shared Traefik running for the other checkouts.
 
-## Next Steps
+## Optional Boost Later
 
-Once the main checkout is healthy, the next useful checks are:
+This repo is prepared for Laravel Boost, but does not install it by default.
 
-1. Keep `./vendor/bin/sail composer dev` running and verify HMR at `https://app.localhost`.
-2. Create a sibling worktree with `./scripts/worktree-create.sh feature-auth` and confirm `https://feature-auth.app.localhost` plus `https://feature-auth-vite.app.localhost`.
-3. Capture the working state in a git commit when you are happy with the docs and runtime behavior.
+Why keep Boost off by default:
+
+- a fresh clone stays closer to stock Laravel
+- the default demo path keeps fewer moving parts
+- teams can review the dependency and generated local files before opting in
+
+If a team later wants Boost, the usual path is:
+
+1. add `laravel/boost` as a dev dependency
+2. create and review a tracked `boost.json`
+3. run `./vendor/bin/sail artisan boost:install --no-interaction`
+4. review generated local files such as `opencode.json` and any optional client folders
+5. rerun `./vendor/bin/sail artisan boost:update --no-interaction` later when refreshing synced guidance
+
+The default repo contract still works without Boost: shared instructions live in `AGENTS.md`, personal reminders live in ignored `AGENTS.local.md`, and reusable workflows live in `.ai/skills/`.
 
 ## AI Asset Pattern
 
@@ -145,6 +165,7 @@ Tracked shared source lives in the repo:
 
 - `AGENTS.md`
 - `AGENTS.local.md.example`
+- `opencode.jsonc.example`
 - `.ai/skills/`
 - optional `.ai/agents/`
 
@@ -152,17 +173,40 @@ Ignored local overlays stay local:
 
 - `AGENTS.local.md`
 - `opencode.jsonc`
+
+Optional ignored client outputs also stay local when a team later enables Boost or other client automation:
+
+- `opencode.json`
+- `.mcp.json`
 - `.agents/skills/*`
 - `.claude/`
 - `.codex/`
 - `.copilot/`
 
-Typical install flow:
+Typical local OpenCode flow:
 
 ```bash
+cp opencode.jsonc.example opencode.jsonc
 mkdir -p .agents/skills
-ln -s ../../.ai/skills/bootstrap-current-checkout .agents/skills/bootstrap-current-checkout
-ln -s ../../.ai/skills/worktree-lifecycle .agents/skills/worktree-lifecycle
+ln -sfn ../../.ai/skills/bootstrap-current-checkout .agents/skills/bootstrap-current-checkout
+ln -sfn ../../.ai/skills/worktree-lifecycle .agents/skills/worktree-lifecycle
 ```
 
+Workflow asset notes:
+
+- `.ai/skills/` is the tracked source of truth for repo-owned skills.
+- `.agents/skills/` is just a local discovery surface for OpenCode when you want it.
+- `AGENTS.md` carries the shared repo contract, while `AGENTS.local.md` keeps personal reminders local.
+- If the team later installs Boost, it can publish or sync local client files from these tracked sources, but that is an explicit opt-in step.
+
+If you want a manual OpenCode config with local instructions, copy `opencode.jsonc.example` to ignored `opencode.jsonc`. The commented example also shows where a future Laravel Boost MCP block would go if the team chooses to enable it later.
+
 The rule stays simple: scripts do the work; repo instructions and skills tell the client when to call them.
+
+## Next Steps
+
+Once the main checkout is healthy, the next useful checks are:
+
+1. Keep `./vendor/bin/sail composer dev` running and verify HMR at `https://app.localhost`.
+2. Create a sibling worktree with `./scripts/worktree-create.sh feature-auth` and confirm `https://feature-auth.app.localhost` plus `https://feature-auth-vite.app.localhost`.
+3. Capture the working state in a git commit when you are happy with the docs and runtime behavior.
