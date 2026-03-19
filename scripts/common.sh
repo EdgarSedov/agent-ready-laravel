@@ -482,14 +482,23 @@ wait_for_shared_postgres() {
     done
 }
 
+run_composer() {
+    if command -v composer >/dev/null 2>&1; then
+        composer "$@"
+    else
+        docker run --rm \
+            --volume "${REPO_ROOT}:/app" \
+            --user "$(id -u):$(id -g)" \
+            composer:2 "$@"
+    fi
+}
+
 ensure_vendor_from_source_or_install() {
     local source_root="${1:-}"
 
     if [[ -d "${REPO_ROOT}/vendor" ]] && lock_state_matches "${REPO_ROOT}/composer.lock" "composer.lock"; then
         return 0
     fi
-
-    require_command composer
 
     if [[ -d "${REPO_ROOT}/vendor" ]]; then
         rm -rf "${REPO_ROOT}/vendor"
@@ -503,7 +512,7 @@ ensure_vendor_from_source_or_install() {
     fi
 
     log "installing Composer dependencies"
-    (cd "${REPO_ROOT}" && composer install --no-interaction)
+    (cd "${REPO_ROOT}" && run_composer install --no-interaction)
     write_lock_state "${REPO_ROOT}/composer.lock" "composer.lock"
 }
 

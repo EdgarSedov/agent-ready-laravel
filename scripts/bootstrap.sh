@@ -35,7 +35,6 @@ done
 
 require_command docker
 require_command git
-require_command php
 
 source_root="$(detect_source_repo_root)"
 ensure_env_file "${source_root}"

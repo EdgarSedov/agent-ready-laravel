@@ -28,11 +28,10 @@ agent-ready-laravel/
 ## Requirements
 
 - Docker with the Compose plugin
-- PHP and Composer
 - sibling `shared-traefik/` repo, or `SHARED_TRAEFIK_PATH` set to it
 - `mkcert` if you want trusted local certs in the shared Traefik repo
 
-Node is optional on the host. Standard Laravel tasks can stay containerized through Sail.
+PHP and Composer are optional on the host. When host Composer is not available, bootstrap falls back to the `composer:2` Docker image. Node is also optional; standard Laravel tasks can stay containerized through Sail.
 
 ## Companion Repo
 
