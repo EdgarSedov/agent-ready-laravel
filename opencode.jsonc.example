@@ -16,7 +16,17 @@
   //     "type": "local",
   //     "enabled": true,
   //     "command": [
-  //       "vendor/bin/sail",
+  //       "docker",
+  //       "compose",
+  //       "--file",
+  //       "docker-compose.yml",
+  //       "--file",
+  //       "docker-compose.traefik.yml",
+  //       "run",
+  //       "--rm",
+  //       "--no-deps",
+  //       "app",
+  //       "php",
   //       "artisan",
   //       "boost:mcp"
   //     ]

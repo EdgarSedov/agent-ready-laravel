@@ -1,31 +1,38 @@
 services:
-  laravel.test:
+  app:
     build:
-      context: ./vendor/laravel/sail/runtimes/8.5
-      dockerfile: Dockerfile
-      args:
-        WWWGROUP: '${WWWGROUP}'
-    image: sail-8.5/app
+      context: .
+      dockerfile: docker/frankenphp/Dockerfile
+    image: '${APP_SLUG:-agent-ready-laravel}-frankenphp'
+    user: '${APP_UID:-1000}:${APP_GID:-1000}'
     extra_hosts:
       - 'host.docker.internal:host-gateway'
-    # AGENT_READY_OPTIONAL_HOST_VITE:
-    # Uncomment this block if you want to run Vite on the host and proxy it
-    # through shared Traefik file-provider routes instead of routing to the
-    # containerized Vite server with Docker labels.
-    # ports:
-    #   - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
+    command: frankenphp run --config /etc/caddy/Caddyfile
     environment:
-      WWWUSER: '${WWWUSER}'
-      LARAVEL_SAIL: 1
-      XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
-      XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
-      IGNITION_LOCAL_SITES_PATH: '${PWD}'
-      VITE_PORT: '${VITE_PORT:-5173}'
+      HOME: /tmp
+      COMPOSER_HOME: /tmp/composer
+      XDG_CONFIG_HOME: /tmp/caddy-config
+      XDG_DATA_HOME: /tmp/caddy-data
+      IGNITION_LOCAL_SITES_PATH: /app
     volumes:
-      - '.:/var/www/html'
+      - '.:/app'
+      - './docker/frankenphp/Caddyfile:/etc/caddy/Caddyfile:ro'
     networks:
       - default
       - shared-services
+
+  vite:
+    image: node:24-alpine
+    user: '${APP_UID:-1000}:${APP_GID:-1000}'
+    working_dir: /app
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    environment:
+      npm_config_cache: /tmp/npm-cache
+      VITE_DOMAIN: '${VITE_DOMAIN:-vite.app.localhost}'
+    volumes:
+      - '.:/app'
+    networks:
+      - default
 
   pgsql:
     profiles:

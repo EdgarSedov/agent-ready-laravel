@@ -20,13 +20,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ -x "${REPO_ROOT}/vendor/bin/sail" ]]; then
-    run_sail down --remove-orphans || true
-fi
-
-# AGENT_READY_OPTIONAL_HOST_VITE:
-# Re-enable ./scripts/traefik.sh unregister-vite here if this checkout uses a
-# host-run Vite process registered through shared Traefik file-provider routes.
+compose down --remove-orphans || true
 
 if [[ ${remove_worktree} -eq 1 ]]; then
     if is_main_checkout; then

@@ -1,27 +1,25 @@
 # Agent Instructions
 
-Use the checked-in scripts as the source of truth for local environment workflows.
+Use repo scripts as the source of truth for local environment workflows.
 
-## Working Rules
+## Core Rules
 
 - Bootstrap the current checkout with `./scripts/bootstrap.sh`.
-- Use `./scripts/worktree-create.sh <branch>` for sibling worktrees.
-- Use `./scripts/worktree-cleanup.sh` before removing a worktree.
-- Use `./scripts/traefik.sh` to talk to the shared Traefik repo. Do not write route files directly.
-- Keep shared guidance in tracked files. Keep personal preferences in ignored `AGENTS.local.md`.
-- When env generation or local infra behavior changes, update `README.md`, `.env.example`, and the relevant script together.
-- This repo is prepared for Laravel Boost later, but the default workflow should stay usable without it.
+- Check state with `./scripts/status.sh`.
+- Create worktrees with `./scripts/worktree-create.sh <branch>`.
+- Clean a checkout with `./scripts/worktree-cleanup.sh`; do not hand-delete Docker resources.
+- Do not edit generated checkout identity values in `.env`; rerun bootstrap.
+- Use Docker Compose services `app` and `vite`; do not use Sail.
+- Use `./scripts/traefik.sh` for shared Traefik; do not write Traefik runtime files directly.
 
-## AI Asset Layout
+## Local Files
 
-- tracked shared source: `AGENTS.md`, `AGENTS.local.md.example`, `.ai/skills/*/SKILL.md`, optional `.ai/agents/`, `opencode.jsonc.example`
-- ignored local overlays: `AGENTS.local.md`, `opencode.jsonc`
-- optional ignored client outputs when the team later enables Boost or other client automation: `opencode.json`, `.mcp.json`, `.agents/skills/`, `.codex/`, `.claude/`, `.copilot/`
+- Shared team guidance lives in tracked files such as `AGENTS.md` and `.ai/skills/*`.
+- Personal or machine-local files stay ignored: `AGENTS.local.md`, `auth.json`, `opencode.jsonc`, `.mcp.json`.
+- Worktree bootstrap may symlink those ignored local files from the source checkout when present.
 
-## Expected Flow
+## Verification
 
-1. Make or verify the code change.
-2. Run the smallest relevant verification step.
-3. If local environment drift is the problem, rerun `./scripts/bootstrap.sh` instead of hand-editing generated `.env` values.
-4. If local OpenCode config drifts, compare ignored `opencode.jsonc` with `opencode.jsonc.example` before changing tracked instructions.
-5. If the team later installs Laravel Boost, review any generated local client files before relying on them.
+- After infra changes, run `./scripts/bootstrap.sh` and `./scripts/status.sh`.
+- After app changes, run `docker compose run --rm --no-deps app php artisan test`.
+- Smoke app URLs through Traefik: `https://app.localhost` and `https://vite.app.localhost/@vite/client`.

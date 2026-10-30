@@ -61,6 +61,21 @@ print(target.resolve())
 PY
 }
 
+relative_path() {
+    local base_path="$1"
+    local target_path="$2"
+
+    python3 - "${base_path}" "${target_path}" <<'PY'
+from pathlib import Path
+import os
+import sys
+
+base = Path(sys.argv[1]).resolve()
+target = Path(sys.argv[2]).resolve()
+print(os.path.relpath(target, base))
+PY
+}
+
 same_lock() {
     local left="$1"
     local right="$2"
@@ -184,87 +199,6 @@ print(hashlib.sha256(value).hexdigest()[:6])
 PY
 }
 
-# AGENT_READY_OPTIONAL_HOST_VITE:
-# These helpers are kept for teams that want to publish per-worktree host ports
-# again and probe for collisions before wiring host-run tools through shared
-# Traefik file-provider routes.
-port_available() {
-    python3 - "$1" <<'PY'
-import socket
-import sys
-
-port = int(sys.argv[1])
-sock = socket.socket()
-sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-try:
-    sock.bind(("127.0.0.1", port))
-except OSError:
-    sys.exit(1)
-finally:
-    sock.close()
-PY
-}
-
-first_free_port() {
-    local start_port="$1"
-    local attempts="${2:-50}"
-    local port
-
-    for ((port = start_port; port < start_port + attempts; port++)); do
-        if port_available "${port}"; then
-            printf '%s\n' "${port}"
-            return 0
-        fi
-    done
-
-    fail "could not find a free port starting at ${start_port}"
-}
-
-project_owns_published_port() {
-    local project_name="$1"
-    local wanted_port="$2"
-
-    python3 - "${project_name}" "${wanted_port}" <<'PY'
-import json
-import subprocess
-import sys
-
-project_name = sys.argv[1]
-wanted_port = sys.argv[2]
-
-container_ids = subprocess.run(
-    ["docker", "ps", "-q", "--filter", f"label=com.docker.compose.project={project_name}"],
-    capture_output=True,
-    text=True,
-    check=False,
-).stdout.split()
-
-if not container_ids:
-    raise SystemExit(1)
-
-inspect_output = subprocess.run(
-    ["docker", "inspect", *container_ids],
-    capture_output=True,
-    text=True,
-    check=False,
-).stdout
-
-if not inspect_output:
-    raise SystemExit(1)
-
-for container in json.loads(inspect_output):
-    ports = (container.get("NetworkSettings") or {}).get("Ports") or {}
-    for bindings in ports.values():
-        if not bindings:
-            continue
-        for binding in bindings:
-            if binding.get("HostPort") == wanted_port:
-                raise SystemExit(0)
-
-raise SystemExit(1)
-PY
-}
-
 is_main_checkout() {
     [[ "$(basename "${REPO_ROOT}")" == "${APP_SLUG}" ]]
 }
@@ -309,14 +243,6 @@ vite_domain() {
     fi
 }
 
-vite_route_id() {
-    if is_main_checkout; then
-        printf '%s-vite\n' "${APP_SLUG}"
-    else
-        printf '%s--%s-vite\n' "${APP_SLUG}" "$(checkout_slug)"
-    fi
-}
-
 database_name() {
     if is_main_checkout; then
         printf '%s\n' "${APP_DB_PREFIX}"
@@ -327,14 +253,6 @@ database_name() {
 
 test_database_name() {
     printf '%s_test\n' "$(database_name)"
-}
-
-default_vite_port() {
-    if is_main_checkout; then
-        printf '5173\n'
-    else
-        printf '%s\n' "$((5200 + (16#$(path_hash "${REPO_ROOT}") % 500)))"
-    fi
 }
 
 detect_primary_checkout_root() {
@@ -429,8 +347,43 @@ ensure_env_file() {
 }
 
 ensure_local_ai_targets() {
+    local skill_dir skill_name target_path relative_target
+
     mkdir -p \
         "${REPO_ROOT}/.agents/skills"
+
+    for skill_dir in "${REPO_ROOT}/.ai/skills"/*; do
+        [[ -d "${skill_dir}" ]] || continue
+
+        skill_name="$(basename "${skill_dir}")"
+        target_path="${REPO_ROOT}/.agents/skills/${skill_name}"
+        relative_target="$(relative_path "$(dirname "${target_path}")" "${skill_dir}")"
+
+        if [[ -L "${target_path}" ]]; then
+            ln -sfn "${relative_target}" "${target_path}"
+        elif [[ ! -e "${target_path}" ]]; then
+            ln -s "${relative_target}" "${target_path}"
+        fi
+    done
+}
+
+link_local_files_from_source() {
+    local source_root="$1"
+    local file_name source_path target_path relative_target
+
+    [[ -n "${source_root}" && "${source_root}" != "${REPO_ROOT}" ]] || return 0
+
+    for file_name in AGENTS.local.md auth.json opencode.jsonc .mcp.json; do
+        source_path="${source_root}/${file_name}"
+        target_path="${REPO_ROOT}/${file_name}"
+
+        [[ -e "${source_path}" || -L "${source_path}" ]] || continue
+        [[ ! -e "${target_path}" && ! -L "${target_path}" ]] || continue
+
+        relative_target="$(relative_path "$(dirname "${target_path}")" "${source_path}")"
+        ln -s "${relative_target}" "${target_path}"
+        log "linked ${file_name} from ${source_root}"
+    done
 }
 
 ensure_shared_services_network() {
@@ -445,15 +398,16 @@ ensure_shared_services_network() {
     log "created Docker network ${network_name}"
 }
 
-run_sail() {
-    (cd "${REPO_ROOT}" && ./vendor/bin/sail "$@")
+compose() {
+    (cd "${REPO_ROOT}" && docker compose --file docker-compose.yml --file docker-compose.traefik.yml "$@")
 }
 
-run_sail_with_compose() {
-    local compose_files="$1"
-    shift
+run_app() {
+    compose run --rm --no-deps app "$@"
+}
 
-    (cd "${REPO_ROOT}" && COMPOSE_FILE="${compose_files}" ./vendor/bin/sail "$@")
+run_node() {
+    compose run --rm --no-deps vite "$@"
 }
 
 shared_compose() {
@@ -483,14 +437,7 @@ wait_for_shared_postgres() {
 }
 
 run_composer() {
-    if command -v composer >/dev/null 2>&1; then
-        composer "$@"
-    else
-        docker run --rm \
-            --volume "${REPO_ROOT}:/app" \
-            --user "$(id -u):$(id -g)" \
-            composer:2 "$@"
-    fi
+    run_app composer "$@"
 }
 
 ensure_vendor_from_source_or_install() {
@@ -534,8 +481,8 @@ ensure_node_modules_from_source_or_install() {
         return 0
     fi
 
-    log "installing Node dependencies through Sail"
-    run_sail npm install
+    log "installing Node dependencies through Vite service"
+    run_node npm install
     write_lock_state "${REPO_ROOT}/package-lock.json" "package-lock.json"
 }
 
@@ -553,13 +500,13 @@ ensure_database_exists() {
     log "created database ${database_name}"
 }
 
-retry_sail_artisan() {
+retry_app_artisan() {
     local attempts="$1"
     local delay_seconds="$2"
     local try=1
     shift 2
 
-    until run_sail artisan "$@"; do
+    until run_app php artisan "$@"; do
         if [[ ${try} -ge ${attempts} ]]; then
             return 1
         fi

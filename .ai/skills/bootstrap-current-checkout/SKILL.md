@@ -1,6 +1,6 @@
 ---
 name: bootstrap-current-checkout
-description: Bootstrap the current checkout and shared local services for this repo. Use when the environment is missing, stale, or after changing infra-related files.
+description: Bootstrap the current FrankenPHP checkout and shared local services. Use when the environment is missing, stale, or after changing infra files.
 ---
 
 # Bootstrap Current Checkout
@@ -20,6 +20,7 @@ Use this skill when the repo needs a ready local environment for the current che
 - The bootstrap flow expects the sibling `shared-traefik` repo and keeps the checkout on `.localhost` HTTPS.
 - The main checkout uses `app.localhost` and `vite.app.localhost`.
 - Worktrees use `<checkout>.app.localhost` and `<checkout>-vite.app.localhost`.
+- Runtime services are Docker Compose `app` for FrankenPHP and `vite` for Vite; do not use Sail.
 - Use `./scripts/traefik.sh` as the only bridge to the shared Traefik repo.
 
 ## Do not do this
