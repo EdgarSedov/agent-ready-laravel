@@ -1,8 +1,11 @@
 bootstrap:
 	./scripts/bootstrap.sh
 
+status:
+	./scripts/status.sh
+
 up:
-	COMPOSE_FILE=docker-compose.yml:docker-compose.traefik.yml ./vendor/bin/sail up -d laravel.test
+	docker compose --file docker-compose.yml --file docker-compose.traefik.yml up -d app vite
 
 wt-create:
 	./scripts/worktree-create.sh "$(BRANCH)"

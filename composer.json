@@ -2,19 +2,19 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "example/agent-ready-laravel",
     "type": "project",
-    "description": "Agent-ready Laravel app scaffold with worktree and shared-local-infra helpers.",
-    "keywords": ["laravel", "worktree", "traefik", "agents"],
+    "description": "Agent-ready Laravel scaffold with FrankenPHP, worktrees, and shared local infrastructure.",
+    "keywords": ["laravel", "frankenphp", "worktree", "traefik", "agents"],
     "license": "MIT",
     "require": {
         "php": "^8.3",
-        "laravel/framework": "^13.0",
+        "laravel/framework": "^13.8",
         "laravel/tinker": "^3.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
         "laravel/pail": "^1.2.5",
+        "laravel/pao": "^1.0.6",
         "laravel/pint": "^1.27",
-        "laravel/sail": "^1.54",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
         "phpunit/phpunit": "^12.5.12"
@@ -37,15 +37,15 @@
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
             "@php artisan migrate --force",
-            "npm install",
+            "npm install --ignore-scripts",
             "npm run build"
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#c4b5fd,#fb7185,#fdba74\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=queue,logs,vite --kill-others"
+            "npx concurrently -c \"#c4b5fd,#fb7185\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" --names=queue,logs --kill-others"
         ],
         "test": [
-            "@php artisan config:clear --ansi",
+            "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
         ],
         "post-autoload-dump": [
